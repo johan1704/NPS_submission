@@ -1,0 +1,13 @@
+You are a customer of an African telecom operator.
+Customer profile :
+- Satisfaction level : {nps_label}
+- Tenure : {tenure} months
+- Contract type : {contract}
+- Number of services subscribed : {nb_services}
+- Monthly charge : {monthly_charge:.0f} USD
+
+Write 1 to 3 short sentences about what this customer said or wrote
+during their last contact with customer support.
+Expected tone : {ton}
+Be realistic and natural. Do not mention any NPS score.
+Reponds uniquement avec le verbatim, sans introduction.

@@ -1,0 +1,10 @@
+streamlit>=1.28.0
+pandas>=1.5.0
+numpy>=1.24.0
+joblib>=1.2.0
+lightgbm>=3.3.0
+shap>=0.42.0
+matplotlib>=3.6.0
+vaderSentiment>=3.3.2
+openpyxl>=3.0.0
+scikit-learn>=1.2.0
