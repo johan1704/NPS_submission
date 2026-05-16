@@ -1,18 +1,3 @@
-"""
-NPS Prediction App - Artefact Challenge
-Section 4.8 - Interface Streamlit pour le Retention Manager
-
-Design choices :
-- Mode 1 : Customer ID -> profil + prediction + SHAP + recommandation
-- Mode 2 : Saisie manuelle -> toutes les 40 features couvertes
-
-Variables saisies (22)     : variables metier lisibles
-Variables reconstruites (9): Total Charges, Revenue...
-Variables fixes (9)        : geo + refund = medianes dataset
-Bornes                     : issues du dataset IBM Telco v11.1.3+
-Graceful                   : champ vide -> mediane dataset
-"""
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -21,7 +6,6 @@ import shap
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="NPS Retention Manager",
@@ -34,7 +18,6 @@ COLORS = {
     'Passif'    : '#f39c12',
     'Promoteur' : '#2ecc71'
 }
-
 # Leviers actionnables identifies en section 4.6
 LEVERS = {
     'tenure_x_contract'   : 'Proposer migration vers contrat annuel',
@@ -207,7 +190,6 @@ st.sidebar.markdown(
     "**Bornes** : IBM Telco v11.1.3+"
 )
 
-# ── TITRE ─────────────────────────────────────────────────────────────────────
 st.title("📊 NPS Prediction — Retention Manager")
 st.markdown(
     "Predit la categorie NPS **(Detracteur / Passif / Promoteur)** "
