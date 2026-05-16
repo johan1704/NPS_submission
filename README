@@ -3,7 +3,7 @@
 Systeme de prediction du NPS (Net Promoter Score) pour un operateur
 telecom pan-africain. Le modele predit la categorie NPS
 (Detracteur / Passif / Promoteur) des 85% de clients silencieux
-qui ne repondent pas aux sondages, pour prioriser les actions de retention.
+pour prioriser les actions de retention.
 
 ---
 
@@ -11,37 +11,64 @@ qui ne repondent pas aux sondages, pour prioriser les actions de retention.
 
 ```
 nps/
-├── artifacts/
-│   ├── raw/          ← fichiers Excel IBM Telco v11.1.3+
-│   └── processed/    ← fichiers generes (master CSV, verbatims)
-├── notebook/
-│   ├── nps_4_1_to_4_7.ipynb   ← pipeline complet
-│   ├── nps_model_final.pkl     ← modele entraine
-│   └── split_data.pkl          ← train/test split
 ├── app/
-│   └── app.py                  ← interface Streamlit
+│   └── app.py                        ← interface Streamlit (section 4.8)
+│
+├── artifacts/
+│   ├── raw/                          ← fichiers Excel IBM Telco v11.1.3+
+│   │   ├── Telco_customer_churn_demographics.xlsx
+│   │   ├── Telco_customer_churn_location.xlsx
+│   │   ├── Telco_customer_churn_services.xlsx
+│   │   ├── Telco_customer_churn_status.xlsx
+│   │   └── Telco_customer_churn.xlsx
+│   └── processed/                    ← (vide - fichiers generes dans notebook/)
+│
 ├── monitoring/
-│   ├── monitor.py              ← detection de drift
-│   └── README.md               ← feedback loop documente
+│   ├── monitor.py                    ← detection de drift (section 4.9)
+│   └── readme.md                     ← feedback loop documente
+│
+├── notebook/
+│   ├── nps_4_1_to_4_7full.ipynb     ← pipeline complet sections 4.1 a 4.7
+│   ├── nps_model_final.pkl           ← modele LightGBM entraine
+│   ├── split_data.pkl                ← train/test split + encoders
+│   ├── telco_nps_master.csv          ← dataset NPS derive (produit par notebook)
+│   ├── telco_nps_verbatims.csv       ← verbatims synthetiques (section 4.4)
+│   ├── verbatim_prompt.txt           ← prompt Llama3 utilise (reproductibilite)
+│   ├── 04_5_calibration.png
+│   ├── 04_5_lift_curve.png
+│   ├── 04_5_model_comparison.png
+│   ├── 04_6_shap_global.png
+│   ├── 04_6_shap_segments.png
+│   └── 04_7_fairness_audit.png
+│
+├── .gitignore
 ├── requirements.txt
-└── README.md
+├── README.md                         ← ce fichier
+├── writeup_english.md                ← note technique (EN)
+└── writeup_french.md                 ← note technique (FR)
 ```
+
+---
+
+## Documents
+
+| Fichier | Contenu |
+|---|---|
+| `writeup_english.md` | Note technique complète : approche, label, modélisation, fairness, limites |
+| `writeup_french.md` | Même contenu en français |
+| `monitoring/readme.md` | Feedback loop et stratégie de retraining documentés |
 
 ---
 
 ## Installation
 
-**Prerequis :** Python >= 3.10, pip
+**Prerequis :** Python >= 3.10
 
 ```bash
-# Cloner le repo
-git clone <repo_url>
-cd nps/
-
 # Creer un environnement virtuel
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
+source venv/bin/activate      # Linux/Mac
+# venv\Scripts\activate       # Windows
 
 # Installer les dependances
 pip install -r requirements.txt
@@ -51,6 +78,8 @@ pip install -r requirements.txt
 ```bash
 # Installer Ollama : https://ollama.ai
 ollama pull llama3
+# Note : telco_nps_verbatims.csv est fourni dans notebook/
+# La regeneration n'est pas necessaire
 ```
 
 ---
@@ -58,54 +87,37 @@ ollama pull llama3
 ## Reproduire le pipeline complet
 
 **Etape 1 — Placer les donnees brutes**
-```
-Telecharger le dataset IBM Telco Customer Churn v11.1.3+ depuis Kaggle :
-https://www.kaggle.com/datasets/blastchar/telco-customer-churn
 
-Placer les 6 fichiers Excel dans : artifacts/raw/
-  - Telco_customer_churn_demographics.xlsx
-  - Telco_customer_churn_location.xlsx
-  - Telco_customer_churn_services.xlsx
-  - Telco_customer_churn_status.xlsx
-  - Telco_customer_churn.xlsx
-  - Telco_customer_churn_population.xlsx
-```
+Telecharger le dataset IBM Telco Customer Churn v11.1.3+ :
+- Kaggle : https://www.kaggle.com/datasets/blastchar/telco-customer-churn
+- IBM Cognos : chercher "Telco customer churn (11.1.3+)"
+
+Placer les fichiers Excel dans `artifacts/raw/`.
 
 **Etape 2 — Executer le notebook**
+
 ```bash
 cd notebook/
-jupyter notebook nps_4_1_to_4_7.ipynb
-# Executer toutes les cellules dans l'ordre (Kernel > Restart & Run All)
+jupyter notebook nps_4_1_to_4_7full.ipynb
+# Kernel > Restart & Run All
 ```
 
-Le notebook produit :
-- `artifacts/processed/telco_nps_master.csv` — dataset NPS derive
-- `notebook/nps_model_final.pkl` — modele entraine
-- `notebook/split_data.pkl` — train/test split
-- `notebook/figures/` — tous les graphiques
+Le notebook produit dans `notebook/` :
+- `telco_nps_master.csv` — dataset NPS derive
+- `nps_model_final.pkl` — modele entraine
+- `split_data.pkl` — train/test split
+- `*.png` — figures de validation et evaluation
 
-**Etape 3 — Generer les verbatims (optionnel - section 4.4)**
-```bash
-# S'assurer qu'Ollama tourne
-ollama serve
+**Etape 3 — Lancer l'interface Streamlit**
 
-# Les verbatims sont generes dans le notebook section 4.4
-# Fichier produit : artifacts/processed/telco_nps_verbatims.csv
-# Prompt stocke   : artifacts/processed/verbatim_prompt.txt
-
-# Note : generation sur 499 clients ~ 30-60 minutes selon la machine
-# Le fichier telco_nps_verbatims.csv est fourni dans le repo
-# pour eviter de relancer la generation
-```
-
-**Etape 4 — Lancer l'interface Streamlit**
 ```bash
 cd app/
 streamlit run app.py
 # Ouvre http://localhost:8501
 ```
 
-**Etape 5 — Lancer le monitoring (optionnel - section 4.9)**
+**Etape 4 — Lancer le monitoring (optionnel)**
+
 ```bash
 cd monitoring/
 python monitor.py
@@ -115,17 +127,28 @@ python monitor.py
 
 ## Reproductibilite
 
-Tous les seeds sont fixes pour garantir la reproductibilite :
+Tous les seeds sont fixes :
 
 ```python
 RANDOM_SEED = 42   # train/test split, LightGBM, sampling
 NOISE_RATE  = 0.10 # bruit dans la construction du label NPS
 ```
 
-**Fichiers commites pour la reproductibilite :**
-- `artifacts/processed/telco_nps_verbatims.csv` — verbatims pre-generes
-  (Ollama/Llama3 n'est pas deterministe — on commite le resultat)
+Fichiers commites pour eviter de relancer les etapes couteuses :
+- `notebook/telco_nps_verbatims.csv` — verbatims pre-generes (Llama3 non deterministe)
 - `notebook/nps_model_final.pkl` — modele pre-entraine
+
+---
+
+## Chemins utilisés dans les scripts
+
+Les chemins sont relatifs au dossier de lancement :
+
+| Script | Lance depuis | Chemins attendus |
+|---|---|---|
+| `app.py` | `app/` | `../notebook/` pour pkl et csv, `../artifacts/raw/` pour demo xlsx |
+| `monitor.py` | `monitoring/` | `../artifacts/raw/` pour xlsx, `../notebook/` pour pkl |
+| `notebook` | `notebook/` | `../artifacts/raw/` pour xlsx |
 
 ---
 
@@ -133,26 +156,11 @@ NOISE_RATE  = 0.10 # bruit dans la construction du label NPS
 
 Conformement aux instructions du challenge (section 7) :
 
-- **Claude (Anthropic)** : utilise pour scaffolding du code,
-  structuration du notebook, et documentation
-- **Llama3 via Ollama** : utilise pour la generation des verbatims
-  synthetiques (section 4.4)
+- **Claude (Anthropic)** : scaffolding du code, structuration du notebook, documentation
+- **Llama3 via Ollama** : generation des verbatims synthetiques (section 4.4)
 
-La logique de modelisation, les choix techniques et les conclusions
+Les decisions de modelisation, choix analytiques et conclusions
 sont de la responsabilite du candidat.
-
----
-
-## Decisions de design principales
-
-| Decision | Justification |
-|---|---|
-| Label enrichi (score 3 + tenure) | Score 3 ambigu — tenure discrimine mieux |
-| Split 15/85 | Simule le vrai probleme business |
-| Threshold 0.20 | Maximise Recall Detracteur (metrique business) |
-| Geo conservee | Signal qualite reseau legitime en contexte africain |
-| Verbatims sur 499 clients | Contrainte calcul local — logique documentee |
-| Monitoring decoupled | Monitor.py separe de l'app (logique MLOps) |
 
 ---
 
@@ -160,28 +168,17 @@ sont de la responsabilite du candidat.
 
 | Metrique | Valeur |
 |---|---|
-| Recall Detracteur (LightGBM + threshold) | 88.5% |
+| Recall Detracteur (modele final) | 88.5% |
 | Macro F1 | 52.5% |
-| QWK | 39.3% |
+| Quadratic Weighted Kappa | 39.3% |
 | Alerte Fairness | Clients maries : ecart 13.8 pts |
 
 ---
 
-## Limitations connues
+## Limitations principales
 
-1. Label construit depuis un proxy (Satisfaction Score 1-5)
-   — pas une vraie note NPS 0-10
-2. Train set de seulement 1 056 clients (15%)
+1. Label construit depuis un proxy (Satisfaction Score 1-5), pas un vrai NPS 0-10
+2. Train set de 1 056 clients seulement (15% du dataset)
 3. Verbatims synthetiques — pas de vrais appels support
-4. Monitoring simule — pas de vraies donnees production
-5. TabICL necessite licence HuggingFace pour le telechargement
-
----
-
-## Prochaines etapes
-
-1. Integrer les vrais verbatims du call center
-2. Enrichir avec donnees Census par ZIP code
-3. Deployer sur infrastructure cloud avec monitoring automatique
-4. Implementer le holdout group pour le feedback loop
-5. Re-evaluer TabICL une fois le checkpoint disponible
+4. Monitoring simule sur train vs test — pas de vraies donnees production
+5. Ecart fairness clients maries non corrige — a investiguer avant production
