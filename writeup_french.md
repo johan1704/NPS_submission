@@ -90,7 +90,66 @@ Les features géographiques (Zip Code, Latitude, Longitude) ont été conservée
 
 ---
 
-## 4. Modélisation et Évaluation
+
+---
+
+## 4. Verbatims Synthetiques (Section 4.4)
+
+### Motivation
+
+Dans un vrai operateur telecom, les notes du call center, les transcripts de chat et les avis sur les applications sont parmi les sources de signal NPS les plus riches — et les moins exploitees. Les donnees tabulaires structurees nous disent ce qu'un client fait. Le texte nous dit comment il le ressent.
+
+Le dataset IBM Telco ne contient pas de donnees textuelles. Nous avons genere un verbatim synthetique par client — une note courte de 1 a 3 phrases simulant le dernier contact du client avec le support — en utilisant Llama3 (via Ollama, en local) conditionne sur un sous-ensemble du profil de chaque client.
+
+### Approche de Generation
+
+Chaque verbatim a ete genere avec le template de prompt suivant, stocke dans `notebook/verbatim_prompt.txt` pour la reproductibilite :
+
+```
+You are a customer of an African telecom operator.
+Customer profile :
+  - Satisfaction level : {nps_label}
+  - Tenure : {tenure} months
+  - Contract type : {contract}
+  - Number of services : {nb_services}
+  - Monthly charge : {monthly_charge} USD
+Expected tone : {tone}
+Write 1 to 3 short sentences about what this customer said
+during their last contact with customer support.
+Be realistic. Do not mention any NPS score.
+Reply only with the verbatim, no introduction.
+```
+
+Le ton etait mappe au label NPS : frustre pour les Detracteurs, neutre pour les Passifs, enthousiaste pour les Promoteurs. Pour refleter le bruit du monde reel, 15% des clients ont recu un ton counter-intuitif — un Detracteur qui semble satisfait, un Promoteur qui se plaint d'un detail mineur.
+
+**Perimetre de generation.** Generer 7 043 verbatims via un LLM local prend environ 14 heures sur CPU. Nous avons genere les verbatims sur un echantillon stratifie de 499 clients (~7% du dataset), en preservant la distribution des classes NPS. Le fichier genere (`notebook/telco_nps_verbatims.csv`) est commite dans le repository pour eviter de relancer la generation.
+
+### Extraction du Signal
+
+Nous avons extrait les scores de sentiment avec VADER (Valence Aware Dictionary and sEntiment Reasoner), un analyseur de sentiment base sur des regles, bien adapte aux courts retours clients en anglais. VADER retourne un score compound entre -1 (tres negatif) et +1 (tres positif).
+
+Score sentiment moyen par segment NPS, conforme aux attentes :
+
+| Segment | Score VADER moyen |
+|---|---|
+| Detracteur | Negatif |
+| Passif | Proche de zero |
+| Promoteur | Positif |
+
+Le bruit de 15% introduit des cas counter-intuitifs qui empeche le modele de traiter le sentiment du verbatim comme un label deterministe.
+
+### Ce que le Texte Apporte — Evaluation Honnete
+
+Nous avons compare les performances de LightGBM avec et sans `sentiment_score` comme feature supplementaire, sur le sous-ensemble de 499 clients avec verbatims :
+
+- L'amelioration du Recall Detracteur etait inferieure a 2 points de pourcentage.
+- La complexite ajoutee du pipeline textuel — generation, stockage, extraction de sentiment — n'est pas justifiee par ce gain marginal sur des donnees synthetiques.
+
+**Conclusion.** Sur ce dataset, les verbatims synthetiques n'ameliorent pas significativement la prediction au-dela de la baseline tabulaire. C'est attendu : les verbatims ont ete generes depuis les memes features tabulaires que le modele voit deja, ils portent donc un signal redondant.
+
+En production avec de vrais transcripts du call center, la conclusion serait probablement differente. Le texte capture les plaintes, les intentions de resiliation et le ton emotionnel que les donnees structurees ne peuvent pas encoder. Ce pipeline est concu pour etre pret pour de vrais verbatims — les etapes de generation et d'extraction sont identiques, seule la source de donnees change.
+
+## 5. Modélisation et Évaluation
 
 ### Sélection des Modèles
 
@@ -133,7 +192,7 @@ Le modèle final capture 88.5% des vrais Détracteurs dans le test set. Le compr
 
 ---
 
-## 5. Drivers de Détraction
+## 6. Drivers de Détraction
 
 ### Drivers Globaux
 
@@ -168,7 +227,7 @@ Les 37% restants — principalement le tenure et la géographie — ne peuvent p
 
 ---
 
-## 6. Fairness et Biais
+## 7. Fairness et Biais
 
 Le modèle alloue le budget retention en priorisant les Détracteurs prédits. S'il rate systématiquement les Détracteurs d'un groupe démographique spécifique, ce groupe reçoit moins de support proactif — non pas parce qu'il est moins insatisfait, mais parce que le modèle le rate.
 
@@ -189,7 +248,7 @@ Sur les features géographiques : le Zip Code et la ville peuvent servir de prox
 
 ---
 
-## 7. Limites et Prochaines Étapes
+## 8. Limites et Prochaines Étapes
 
 ### Ce qui est implémenté
 
