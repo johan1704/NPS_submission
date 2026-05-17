@@ -68,6 +68,7 @@ nps/
 ## Installation
 
 **Prerequis :** Python >= 3.10
+**Testé avec :** Python 3.10.12
 
 ```bash
 # Creer un environnement virtuel
