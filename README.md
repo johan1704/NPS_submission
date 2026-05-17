@@ -41,10 +41,10 @@ nps/
 │   ├── 04_6_shap_segments.png
 │   └── 04_7_fairness_audit.png
 │
-├── screenshot_interface/  ← screenhot de l'interface streamlit
-│   ├── screen1.png     
-│   ├── screen2.png           
-│   ├── screen3.png               
+├── screenshot_interface/             ← screenshots de l'interface Streamlit
+│   ├── screen1.png
+│   ├── screen2.png
+│   └── screen3.png
 │
 ├── .gitignore
 ├── requirements.txt
@@ -80,25 +80,24 @@ source venv/bin/activate      # Linux/Mac
 pip install -r requirements.txt
 ```
 
-**Pour les verbatims synthetiques (section 4.4) :**
+**Pour regenerer les verbatims (optionnel — non necessaire) :**
 ```bash
 # Installer Ollama : https://ollama.ai
 ollama pull llama3
-# Note : telco_nps_verbatims.csv est fourni dans notebook/
-# La regeneration n'est pas necessaire
+ollama serve
+# Puis decommenter la section 4.4 dans le notebook
 ```
 
 ---
 
 ## Reproduire le pipeline complet
 
-**Etape 1 — Placer les donnees brutes**
+**Etape 1 — Verifier les donnees brutes**
 
-Telecharger le dataset IBM Telco Customer Churn v11.1.3+ :
+Les fichiers Excel IBM Telco v11.1.3+ sont fournis dans `artifacts/raw/`.
+Si absents, les telecharger depuis :
 - Kaggle : https://www.kaggle.com/datasets/blastchar/telco-customer-churn
 - IBM Cognos : chercher "Telco customer churn (11.1.3+)"
-
-Placer les fichiers Excel dans `artifacts/raw/`.
 
 **Etape 2 — Executer le notebook**
 
@@ -107,6 +106,17 @@ cd notebook/
 jupyter notebook nps_4_1_to_4_7full.ipynb
 # Kernel > Restart & Run All
 ```
+
+> **Note importante — Section 4.4 (Verbatims) :**
+> La generation des verbatims via Llama3 est **commentee** dans le notebook.
+> Raison : Llama3 n'est pas deterministe — deux executions donnent des textes differents,
+> ce qui rendrait les resultats de la comparaison avec/sans sentiment non reproductibles.
+>
+> Le fichier `notebook/telco_nps_verbatims.csv` est fourni dans le repo.
+> **Restart & Run All fonctionne sans Ollama** — la section 4.4 est skippee.
+>
+> Pour regenerer les verbatims : decommenter la section 4.4,
+> s'assurer qu'Ollama tourne (`ollama serve`), et relancer uniquement cette section.
 
 Le notebook produit dans `notebook/` :
 - `telco_nps_master.csv` — dataset NPS derive
@@ -140,19 +150,24 @@ RANDOM_SEED = 42   # train/test split, LightGBM, sampling
 NOISE_RATE  = 0.10 # bruit dans la construction du label NPS
 ```
 
-Fichiers commites pour eviter de relancer les etapes couteuses :
-- `notebook/telco_nps_verbatims.csv` — verbatims pre-generes (Llama3 non deterministe)
-- `notebook/nps_model_final.pkl` — modele pre-entraine
+Fichiers commites pour garantir la reproductibilite :
+
+| Fichier | Raison |
+|---|---|
+| `notebook/telco_nps_verbatims.csv` | Llama3 non deterministe — on commite le resultat |
+| `notebook/nps_model_final.pkl` | Modele pre-entraine avec numpy 1.26.4 |
+| `notebook/split_data.pkl` | Split pre-calcule (RANDOM_SEED=42) |
+| `notebook/telco_nps_master.csv` | Dataset NPS derive |
 
 ---
 
-## Chemins utilisés dans les scripts
+## Chemins utilises dans les scripts
 
 Les chemins sont relatifs au dossier de lancement :
 
-| Script | Lance depuis | Chemins attendus |
+| Script | Lancer depuis | Chemins attendus |
 |---|---|---|
-| `app.py` | `app/` | `../notebook/` pour pkl et csv, `../artifacts/raw/` pour demo xlsx |
+| `app.py` | `app/` | `../notebook/` pour pkl et csv, `../artifacts/raw/` pour demographics |
 | `monitor.py` | `monitoring/` | `../artifacts/raw/` pour xlsx, `../notebook/` pour pkl |
 | `notebook` | `notebook/` | `../artifacts/raw/` pour xlsx |
 
