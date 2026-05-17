@@ -41,6 +41,11 @@ nps/
 │   ├── 04_6_shap_segments.png
 │   └── 04_7_fairness_audit.png
 │
+├── screenshot_interface/  ← screenhot de l'interface streamlit
+│   ├── screen1.png     
+│   ├── screen2.png           
+│   ├── screen3.png               
+│
 ├── .gitignore
 ├── requirements.txt
 ├── README.md                         ← ce fichier
